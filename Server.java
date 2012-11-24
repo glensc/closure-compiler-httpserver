@@ -3,6 +3,11 @@ import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
 import java.net.InetSocketAddress;
+import java.net.URLDecoder;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import com.sun.net.httpserver.Headers;
@@ -22,6 +27,9 @@ import com.google.javascript.jscomp.JSSourceFile;
 
 /**
  * {@link Server} for Closure Compiler.
+ *
+ * Implement API defined in
+ * {@link https://developers.google.com/closure/compiler/docs/api-ref Closure Compiler Service API Reference}
  *
  * @author Elan Ruusamäe <glen@delfi.ee>
  */
@@ -64,8 +72,39 @@ public final class Server implements Runnable {
 				inputStream.read(bytes);
 				String input = new String(bytes);
 
+				// parse the POST parameters
+				Map<String,List<String>> params = new HashMap<String,List<String>>();
+				String defs[] = input.split("[&]");
+				String encoding = "UTF-8";
+				for (String def: defs) {
+					int ix = def.indexOf('=');
+					String name;
+					String value;
+					if (ix < 0) {
+						name = def;
+						value = "";
+					} else {
+						name = def.substring(0, ix);
+						value = URLDecoder.decode(def.substring(ix+1), encoding);
+					}
+					List<String> list = params.get(name);
+					if (list == null) {
+						list = new ArrayList<String>();
+						params.put(name, list);
+					}
+					list.add(value);
+				}
+
 				System.out.println(input);
-				String compiledCode = compile(input);
+				System.out.println(params);
+				if (!params.containsKey("js_code")) {
+					exchange.sendResponseHeaders(400, -1);
+					System.out.println("Bad request: no js_code");
+					return;
+				}
+
+				String source = params.get("js_code").get(0);
+				String compiledCode = compile(source);
 				System.out.println(compiledCode);
 
 				// TODO: detect errors
