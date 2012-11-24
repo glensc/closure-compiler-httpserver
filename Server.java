@@ -103,6 +103,12 @@ public final class Server implements Runnable {
 					return;
 				}
 
+				if (params.containsKey("output_format") && !params.get("output_format").get(0).equals("text")) {
+					exchange.sendResponseHeaders(400, -1);
+					System.out.println("only output_format=text supported");
+					return;
+				}
+
 				String source = params.get("js_code").get(0);
 				String compiledCode = compile(source);
 				System.out.println(compiledCode);
