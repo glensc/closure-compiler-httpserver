@@ -1,8 +1,9 @@
+import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
-import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.util.Properties;
 
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -26,8 +27,7 @@ import com.google.javascript.jscomp.JSSourceFile;
  */
 public final class Server implements Runnable {
 	private final String listenAddress;
-
-	private int port;
+	private final int port;
 
 	public Server(String listenAddress, int port) {
 		this.listenAddress = listenAddress;
@@ -112,7 +112,19 @@ public final class Server implements Runnable {
 	}
 
 	public static void main(String[] args) {
-		Server server = new Server("0.0.0.0", 8888);
+		Properties props = System.getProperties();
+		String listenAddress = props.getProperty("address");
+		if (listenAddress == null) {
+			listenAddress = "0.0.0.0";
+		}
+		String listenPort = props.getProperty("port");
+		if (listenPort == null) {
+			listenPort = "8888";
+		}
+		int port = Integer.parseInt(listenPort);
+
+		System.out.println("Listening on " + listenAddress + ":" + port);
+		Server server = new Server(listenAddress, port);
 		server.run();
 	}
 }
