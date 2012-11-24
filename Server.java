@@ -109,8 +109,13 @@ public final class Server implements Runnable {
 					return;
 				}
 
+				String compilation_level = "SIMPLE_OPTIMIZATIONS";
+				if (params.containsKey("compilation_level")) {
+					compilation_level = params.get("compilation_level").get(0);
+				}
+
 				String source = params.get("js_code").get(0);
-				String compiledCode = compile(source);
+				String compiledCode = compile(source, compilation_level);
 				System.out.println(compiledCode);
 
 				// TODO: detect errors
@@ -132,13 +137,20 @@ public final class Server implements Runnable {
 	 * @param code JavaScript source code to compile.
 	 * @return The compiled version of the code.
 	 */
-	public static String compile(String code) {
+	public static String compile(String code, String compilation_level) {
 		Compiler compiler = new Compiler();
-
 		CompilerOptions options = new CompilerOptions();
-		// Advanced mode is used here, but additional options could be set, too.
-//		CompilationLevel.ADVANCED_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
-		CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
+
+		if (compilation_level.equals("WHITESPACE_ONLY")) {
+			CompilationLevel.WHITESPACE_ONLY.setOptionsForCompilationLevel(options);
+
+		} else if (compilation_level.equals("SIMPLE_OPTIMIZATIONS")) {
+			CompilationLevel.SIMPLE_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
+
+		} else if (compilation_level.equals("ADVANCED_OPTIMIZATIONS")) {
+			CompilationLevel.ADVANCED_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
+		}
+
 
 		// To get the complete set of externs, the logic in
 		// CompilerRunner.getDefaultExterns() should be used here.
