@@ -2,6 +2,8 @@ import java.io.InputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.Writer;
+import java.lang.String;
+import java.lang.System;
 import java.net.InetSocketAddress;
 import java.net.URLDecoder;
 import java.util.ArrayList;
@@ -19,6 +21,8 @@ import com.google.javascript.jscomp.CompilationLevel;
 import com.google.javascript.jscomp.Compiler;
 import com.google.javascript.jscomp.CompilerOptions;
 import com.google.javascript.jscomp.JSSourceFile;
+import com.google.javascript.jscomp.JSError;
+
 
 // to compile:
 // $ javac -cp /usr/share/java/closure-compiler.jar:. Server.java
@@ -114,8 +118,13 @@ public final class Server implements Runnable {
 					compilation_level = params.get("compilation_level").get(0);
 				}
 
+				String output_info = "compiled_code";
+				if (params.containsKey("output_info")) {
+					output_info = params.get("output_info").get(0);
+				}
+
 				String source = params.get("js_code").get(0);
-				String compiledCode = compile(source, compilation_level);
+				String compiledCode = compile(source, compilation_level, output_info);
 				System.out.println(compiledCode);
 
 				// TODO: detect errors
@@ -137,7 +146,7 @@ public final class Server implements Runnable {
 	 * @param code JavaScript source code to compile.
 	 * @return The compiled version of the code.
 	 */
-	public static String compile(String code, String compilation_level) {
+	public static String compile(String code, String compilation_level, String output_info) {
 		Compiler compiler = new Compiler();
 		CompilerOptions options = new CompilerOptions();
 
@@ -150,7 +159,6 @@ public final class Server implements Runnable {
 		} else if (compilation_level.equals("ADVANCED_OPTIMIZATIONS")) {
 			CompilationLevel.ADVANCED_OPTIMIZATIONS.setOptionsForCompilationLevel(options);
 		}
-
 
 		// To get the complete set of externs, the logic in
 		// CompilerRunner.getDefaultExterns() should be used here.
@@ -165,7 +173,21 @@ public final class Server implements Runnable {
 
 		// The compiler is responsible for generating the compiled code; it is not
 		// accessible via the Result.
-		return compiler.toSource();
+		if (output_info.equals("compiled_code")) {
+			return compiler.toSource();
+		} else if (output_info.equals("errors")) {
+			String errors = String.format("%d Errors, %d Warnings\n", compiler.getErrorCount(), compiler.getWarningCount());
+			for (JSError message : compiler.getWarnings()) {
+				errors += "Warning: " + message.toString() + "\n";
+			}
+
+			for (JSError message : compiler.getErrors()) {
+				errors += "Error: " + message.toString() + "\n";
+			}
+			return errors;
+		} else {
+			return "";
+		}
 	}
 
 	public static void main(String[] args) {
