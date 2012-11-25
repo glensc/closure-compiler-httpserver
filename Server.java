@@ -127,10 +127,14 @@ public final class Server implements Runnable {
 				String compiledCode = compile(source, compilation_level, output_info);
 				System.out.println(compiledCode);
 
-				// TODO: detect errors
-
 				Headers responseHeaders = exchange.getResponseHeaders();
 				responseHeaders.set("Content-Type", "text/plain");
+				if (compiledCode == null) {
+					exchange.sendResponseHeaders(204, -1);
+					System.out.println("compile error");
+					return;
+				}
+
 				exchange.sendResponseHeaders(200, compiledCode.length());
 
 				Writer responseBody = new OutputStreamWriter(exchange.getResponseBody());
@@ -174,6 +178,9 @@ public final class Server implements Runnable {
 		// The compiler is responsible for generating the compiled code; it is not
 		// accessible via the Result.
 		if (output_info.equals("compiled_code")) {
+			if (compiler.getErrorCount() > 0) {
+				return null;
+			}
 			return compiler.toSource();
 		} else if (output_info.equals("errors")) {
 			String errors = String.format("%d Errors, %d Warnings\n", compiler.getErrorCount(), compiler.getWarningCount());
@@ -186,7 +193,7 @@ public final class Server implements Runnable {
 			}
 			return errors;
 		} else {
-			return "";
+			return null;
 		}
 	}
 
